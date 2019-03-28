@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,8 +11,14 @@ from delve import CheckLayerSat
 from tqdm import tqdm, trange
 from fastai.vision import learner
 
+
 class SimpleFCNet(nn.Module):
-    def __init__(self,in_channels: int, l1: int = 1024, l2: int = 512, l3: int = 256, n_classes: int = 10):
+    def __init__(self,
+                 in_channels: int,
+                 l1: int = 1024,
+                 l2: int = 512,
+                 l3: int = 256,
+                 n_classes: int = 10):
         super(SimpleFCNet, self).__init__()
         self.fc0 = nn.Linear(in_channels, l1)
         self.fc1 = nn.Linear(l1, l2)
@@ -30,14 +35,25 @@ class SimpleFCNet(nn.Module):
 
 
 class SimpleCNN(nn.Module):
-    def __init__(self, in_channels: int = 3, l1: int = 8, l2: int = 16, l3: int = 32, n_classes: int = 10):
+    def __init__(self,
+                 in_channels: int = 3,
+                 l1: int = 8,
+                 l2: int = 16,
+                 l3: int = 32,
+                 n_classes: int = 10):
         super(SimpleCNN, self).__init__()
-        self.conv0 = nn.Conv2d(in_channels=in_channels, out_channels=l1, kernel_size=(3,3), stride=2)
-        self.conv1 = nn.Conv2d(in_channels=l1, out_channels=l2, kernel_size=(3,3), stride=2)
-        self.conv2 = nn.Conv2d(in_channels=l2, out_channels=l3, kernel_size=(3,3), stride=2)
+        self.conv0 = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=l1,
+            kernel_size=(3, 3),
+            stride=2)
+        self.conv1 = nn.Conv2d(
+            in_channels=l1, out_channels=l2, kernel_size=(3, 3), stride=2)
+        self.conv2 = nn.Conv2d(
+            in_channels=l2, out_channels=l3, kernel_size=(3, 3), stride=2)
         self.pool = AdaptiveConcatPool2d(1)
-       # self.readout = nn.Flatten()
-        self.out = nn.Linear(l3*2, n_classes)
+        # self.readout = nn.Flatten()
+        self.out = nn.Linear(l3 * 2, n_classes)
 
     def forward(self, x):
         x = F.relu(self.conv0(x))
