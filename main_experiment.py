@@ -1,5 +1,5 @@
-import numpy as np
 from types import FunctionType
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,63 +10,15 @@ import torchvision.transforms as transforms
 from delve import CheckLayerSat
 from models import SimpleFCNet, SimpleCNN
 
+
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
 
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-"""
+
 torch.manual_seed(1)
-
-epochs = 5
-
-for h2 in [8, 32, 128]:  # compare various hidden layer sizes
-    net = Net(h2=h2)  # instantiate network with hidden layer size `h2`
-
-    net.to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-    logging_dir = 'convNet/h2-{}'.format(h2)
-    stats = CheckLayerSat(logging_dir, net)
-    stats.write("CIFAR10 ConvNet - Changing fc2 - size {}".format(h2))  # optional
-
-    for epoch in range(epochs):
-        running_loss = 0.0
-        step = 0
-        loader = tqdm(
-            train_loader, leave=True, position=0
-        )  # track step progress and loss - optional
-        for i, data in enumerate(loader):
-            step = epoch * len(loader) + i
-            inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
-            optimizer.zero_grad()
-
-            outputs = net(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.data
-            if i % 2000 == 1999:  # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
-                running_loss = 0.0
-                stats.add_scalar('batch_loss', running_loss, step)  # optional
-
-            # update the training progress display
-            loader.set_description(
-                desc='[%d/%d, %5d] loss: %.3f' % (epoch + 1, epochs, i + 1, loss.data)
-            )
-            # display layer saturation levels
-            stats.saturation()
-
-    loader.write('\n')
-    loader.close()
-    stats.close()
-
-"""
 
 def train_set_cifar(transform, batch_size):
     train_set = torchvision.datasets.CIFAR10(
@@ -89,21 +41,27 @@ def test_set_cifar(transform, batch_size):
 
 def train(network, dataset, test_set, logging_dir):
 
+    network.to(device)
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
     stats = CheckLayerSat(logging_dir, network)
     test_stats = CheckLayerSat(logging_dir.replace('train','valid'), network)
 
     train_loss = 0
-    epoch_acc = 0.0
+    epoch_acc = 0
     thresh = 0.95
     epoch = 0
     total = 0
     correct = 0
-    while epoch_acc >= thresh:
+    while epoch_acc <= thresh:
+        print('Start Training Epoch', epoch, '\n')
 
+        epoch_acc = 0
+        total = 0
+        correct = 0
         for i, data in enumerate(dataset):
-            #step = epoch*len(dataset) + i
+            step = epoch*len(dataset) + i
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -116,15 +74,16 @@ def train(network, dataset, test_set, logging_dir):
             train_loss += loss.item()
             _, predicted = outputs.max(1)
             total += labels.size(0)
-            correct += predicted.eq(labels).sum.item()
+            correct += predicted.eq(labels).sum().item()
             if i % 2000 == 1999:  # print every 2000 mini-batches
                 print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
             stats.saturation()
         test(network, test_set, criterion, test_stats, epoch)
-        print('Epoch', epoch, 'finished', 'Acc:', correct/total, 'Loss:', np.mean(train_loss))
-        stats.add_scalar('loss', np.mean(loss), epoch)  # optional
-        stats.add_scalar('acc', correct/total, epoch)  # optional
+        epoch_acc = correct / total
+        print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / step,'\n')
+        stats.add_scalar('loss', train_loss / step, epoch)  # optional
+        stats.add_scalar('acc', epoch_acc, epoch)  # optional
         epoch += 1
     return criterion
 
@@ -149,8 +108,8 @@ def test(network, dataset, criterion, stats, epoch):
 
             if batch_idx % 2000 == 1999:  # print every 2000 mini-batches
                 print(batch_idx,'of', len(dataset),'acc:', correct/total)
-        print('Test finished', 'Acc:', correct / total, 'Loss:', np.mean(test_loss))
-        stats.add_scalar('test_loss', np.mean(loss), epoch)  # optional
+        print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss / len(dataset),'\n')
+        stats.add_scalar('test_loss', test_loss / len(dataset), epoch)  # optional
         stats.add_scalar('test_acc', correct/total, epoch)  # optional
     return
 
@@ -168,7 +127,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
         for l2_config in l2:
             for l3_config in l3:
                 print('Creating Network')
-                network(in_channels=in_channels,
+                net = network(in_channels=in_channels,
                         l1=l1_config,
                         l2=l2_config,
                         l3=l3_config,
@@ -177,7 +136,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
                 train_loader = train_set(transform, batch_size)
                 test_loader = test_set(transform, batch_size)
                 print('Datasets fetched')
-                train(network, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1, l2, l3))
+                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1, l2, l3))
 
 if '__main__' == __name__:
 
@@ -188,8 +147,8 @@ if '__main__' == __name__:
         'l1' : [4, 16, 64],
         'l2' : [8, 32, 128],
         'l3' : [16, 64, 256],
-        'train': train_set_cifar,
-        'test': test_set_cifar
+        'train_set': train_set_cifar,
+        'test_set': test_set_cifar
     }
 
     configFCN_cifar = {
@@ -199,8 +158,8 @@ if '__main__' == __name__:
         'l1' : [256, 1024, 4098],
         'l2' : [128, 512, 2048],
         'l3' : [64, 256, 1024],
-        'train': train_set_cifar,
-        'test': test_set_cifar
+        'train_set': train_set_cifar,
+        'test_set': test_set_cifar
     }
 
-    execute_experiment(**configFCN_cifar)
+    execute_experiment(**configCNN_cifar)
