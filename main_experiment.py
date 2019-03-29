@@ -1,4 +1,7 @@
 from types import FunctionType
+from fastai.vision import create_cnn, ImageDataBunch
+from fastai.train import AdamW
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,7 +16,6 @@ from models import SimpleFCNet, SimpleCNN
 
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
-
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -44,7 +46,7 @@ def train(network, dataset, test_set, logging_dir):
     network.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
+    optimizer = AdamW(network.parameters())
     stats = CheckLayerSat(logging_dir, network)
     test_stats = CheckLayerSat(logging_dir.replace('train','valid'), network)
 
@@ -78,13 +80,15 @@ def train(network, dataset, test_set, logging_dir):
             if i % 2000 == 1999:  # print every 2000 mini-batches
                 print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
-            stats.saturation()
+        stats.saturation()
         test(network, test_set, criterion, test_stats, epoch)
         epoch_acc = correct / total
         print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / step,'\n')
         stats.add_scalar('loss', train_loss / step, epoch)  # optional
         stats.add_scalar('acc', epoch_acc, epoch)  # optional
         epoch += 1
+    stats.close()
+    test_stats.close()
     return criterion
 
 
@@ -104,10 +108,10 @@ def test(network, dataset, criterion, stats, epoch):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
-            stats.saturation()
 
             if batch_idx % 2000 == 1999:  # print every 2000 mini-batches
                 print(batch_idx,'of', len(dataset),'acc:', correct/total)
+        stats.saturation()
         print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss / len(dataset),'\n')
         stats.add_scalar('test_loss', test_loss / len(dataset), epoch)  # optional
         stats.add_scalar('test_acc', correct/total, epoch)  # optional
@@ -127,16 +131,20 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
         for l2_config in l2:
             for l3_config in l3:
                 print('Creating Network')
+
                 net = network(in_channels=in_channels,
                         l1=l1_config,
                         l2=l2_config,
                         l3=l3_config,
                         n_classes=n_classes)
                 print('Network created')
+
                 train_loader = train_set(transform, batch_size)
                 test_loader = test_set(transform, batch_size)
+
+
                 print('Datasets fetched')
-                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1, l2, l3))
+                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1_config, l2_config, l3_config))
 
 if '__main__' == __name__:
 
@@ -155,9 +163,9 @@ if '__main__' == __name__:
         'network': SimpleFCNet,
         'in_channels': 32*32*3,
         'n_classes': 10,
-        'l1' : [256, 1024, 4098],
-        'l2' : [128, 512, 2048],
-        'l3' : [64, 256, 1024],
+        'l1' : [4*3*3, 16*3*3, 64*3*3],
+        'l2' : [8*3*3, 32*3*3, 128*3*3],
+        'l3' : [16*3*3, 64*3*3, 256*3*3],
         'train_set': train_set_cifar,
         'test_set': test_set_cifar
     }
