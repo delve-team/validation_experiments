@@ -11,7 +11,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from delve import CheckLayerSat
-from models import SimpleFCNet, SimpleCNN
+from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel
 
 
 from sklearn.metrics import accuracy_score
@@ -56,7 +56,7 @@ def train(network, dataset, test_set, logging_dir):
     epoch = 0
     total = 0
     correct = 0
-    while epoch_acc <= thresh:
+    while epoch <= 20:
         print('Start Training Epoch', epoch, '\n')
 
         epoch_acc = 0
@@ -89,6 +89,7 @@ def train(network, dataset, test_set, logging_dir):
         epoch += 1
     stats.close()
     test_stats.close()
+
     return criterion
 
 
@@ -121,7 +122,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
     print('Experiment has started')
 
-    batch_size = 128
+    batch_size = 64
 
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
@@ -159,6 +160,17 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
+    configCNNKernel_cifar = {
+        'network': SimpleCNNKernel,
+        'in_channels': 3,
+        'n_classes': 10,
+        'l1': [3, 5, 7],
+        'l2': [3, 5, 7],
+        'l3': [3, 5, 7],
+        'train_set': train_set_cifar,
+        'test_set': test_set_cifar
+    }
+
     configFCN_cifar = {
         'network': SimpleFCNet,
         'in_channels': 32*32*3,
@@ -170,4 +182,4 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNN_cifar)
+    execute_experiment(**configCNNKernel_cifar)
