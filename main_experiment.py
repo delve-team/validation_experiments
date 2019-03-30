@@ -41,14 +41,14 @@ def test_set_cifar(transform, batch_size):
 
     return test_loader
 
-def train(network, dataset, test_set, logging_dir):
+def train(network, dataset, test_set, logging_dir, batch_size):
 
     network.to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = AdamW(network.parameters())
-    stats = CheckLayerSat(logging_dir, network)
-    test_stats = CheckLayerSat(logging_dir.replace('train','valid'), network)
+    #stats = CheckLayerSat(logging_dir, network, log_interval=len(dataset)//batch_size)
+    stats = CheckLayerSat(logging_dir, network, log_interval=10, sat_method='all', conv_method='mean')
 
     train_loss = 0
     epoch_acc = 0
@@ -62,6 +62,7 @@ def train(network, dataset, test_set, logging_dir):
         epoch_acc = 0
         total = 0
         correct = 0
+        network.train()
         for i, data in enumerate(dataset):
             step = epoch*len(dataset) + i
             inputs, labels = data
@@ -81,14 +82,14 @@ def train(network, dataset, test_set, logging_dir):
                 print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
         stats.saturation()
-        test(network, test_set, criterion, test_stats, epoch)
+        test(network, test_set, criterion, stats, epoch)
         epoch_acc = correct / total
         print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / step,'\n')
-        stats.add_scalar('loss', train_loss / step, epoch)  # optional
-        stats.add_scalar('acc', epoch_acc, epoch)  # optional
+        stats.add_scalar('train_loss', train_loss / step, epoch)  # optional
+        stats.add_scalar('train_acc', epoch_acc, epoch)  # optional
         epoch += 1
     stats.close()
-    test_stats.close()
+#    test_stats.close()
 
     return criterion
 
@@ -145,7 +146,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
 
                 print('Datasets fetched')
-                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1_config, l2_config, l3_config))
+                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1_config, l2_config, l3_config), batch_size)
 
 if '__main__' == __name__:
 
@@ -182,4 +183,4 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNNKernel_cifar)
+    execute_experiment(**configFCN_cifar)
