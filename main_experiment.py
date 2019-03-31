@@ -128,10 +128,14 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-
+    check = 7
+    i = 0
     for l1_config in l1:
         for l2_config in l2:
             for l3_config in l3:
+                i += 1
+                if i <= check:
+                    continue
                 print('Creating Network')
 
                 net = network(in_channels=in_channels,
@@ -147,6 +151,8 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
                 print('Datasets fetched')
                 train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1_config, l2_config, l3_config), batch_size)
+
+                del net
 
 if '__main__' == __name__:
 
@@ -183,4 +189,4 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configFCN_cifar)
+    execute_experiment(**configCNNKernel_cifar)
