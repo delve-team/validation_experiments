@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,8 +11,14 @@ from delve import CheckLayerSat
 from tqdm import tqdm, trange
 from fastai.vision import learner
 
+
 class SimpleFCNet(nn.Module):
-    def __init__(self,in_channels: int, l1: int = 1024, l2: int = 512, l3: int = 256, n_classes: int = 10):
+    def __init__(self,
+                 in_channels: int,
+                 l1: int = 1024,
+                 l2: int = 512,
+                 l3: int = 256,
+                 n_classes: int = 10):
         super(SimpleFCNet, self).__init__()
 
         print('Setting up FCN with: l1', l1, 'l2', l2, 'l3', l3)
@@ -37,7 +42,12 @@ class SimpleFCNet(nn.Module):
 
 
 class SimpleCNN(nn.Module):
-    def __init__(self, in_channels: int = 3, l1: int = 8, l2: int = 16, l3: int = 32, n_classes: int = 10):
+    def __init__(self,
+                 in_channels: int = 3,
+                 l1: int = 8,
+                 l2: int = 16,
+                 l3: int = 32,
+                 n_classes: int = 10):
         super(SimpleCNN, self).__init__()
 
         print('Setting up CNN with: l1',l1,'l2',l2,'l3',l3)
