@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 
 from delve import CheckLayerSat
 from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel
+from csv_logger import record_metrics, log_to_csv
 
 
 from sklearn.metrics import accuracy_score
@@ -48,18 +49,20 @@ def train(network, dataset, test_set, logging_dir, batch_size):
     criterion = nn.CrossEntropyLoss()
     optimizer = AdamW(network.parameters())
     #stats = CheckLayerSat(logging_dir, network, log_interval=len(dataset)//batch_size)
-    stats = CheckLayerSat(logging_dir, network, log_interval=10, sat_method='all', conv_method='mean')
+    stats = CheckLayerSat(logging_dir, network, log_interval=60, sat_method='all', conv_method='mean')
 
-    train_loss = 0
+
     epoch_acc = 0
     thresh = 0.95
     epoch = 0
     total = 0
     correct = 0
+    value_dict = None
     while epoch <= 20:
         print('Start Training Epoch', epoch, '\n')
 
         epoch_acc = 0
+        train_loss = 0
         total = 0
         correct = 0
         network.train()
@@ -82,11 +85,13 @@ def train(network, dataset, test_set, logging_dir, batch_size):
                 print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
         stats.saturation()
-        test(network, test_set, criterion, stats, epoch)
+        test_loss, test_acc = test(network, test_set, criterion, stats, epoch)
         epoch_acc = correct / total
-        print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / step,'\n')
-        stats.add_scalar('train_loss', train_loss / step, epoch)  # optional
+        print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / total,'\n')
+        stats.add_scalar('train_loss', train_loss / total, epoch)  # optional
         stats.add_scalar('train_acc', epoch_acc, epoch)  # optional
+        value_dict = record_metrics(value_dict, stats.logs, epoch_acc, train_loss/total, test_acc, test_loss, epoch)
+        log_to_csv(value_dict, logging_dir)
         epoch += 1
     stats.close()
 #    test_stats.close()
@@ -117,7 +122,7 @@ def test(network, dataset, criterion, stats, epoch):
         print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss / len(dataset),'\n')
         stats.add_scalar('test_loss', test_loss / len(dataset), epoch)  # optional
         stats.add_scalar('test_acc', correct/total, epoch)  # optional
-    return
+    return test_loss/total, correct/total
 
 def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1: int, l2: int , l3: int, train_set: FunctionType, test_set: FunctionType):
 
@@ -128,7 +133,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    check = 7
+    check = 2
     i = 0
     for l1_config in l1:
         for l2_config in l2:
@@ -150,7 +155,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
 
                 print('Datasets fetched')
-                train(net, train_loader, test_loader, 'train_run_{}_{}_{}'.format(l1_config, l2_config, l3_config), batch_size)
+                train(net, train_loader, test_loader, '{}_{}_{}'.format(l1_config, l2_config, l3_config), batch_size)
 
                 del net
 
@@ -189,4 +194,4 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNNKernel_cifar)
+    execute_experiment(**configCNN_cifar)
