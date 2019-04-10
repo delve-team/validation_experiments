@@ -49,7 +49,7 @@ def train(network, dataset, test_set, logging_dir, batch_size):
     criterion = nn.CrossEntropyLoss()
     optimizer = AdamW(network.parameters())
     #stats = CheckLayerSat(logging_dir, network, log_interval=len(dataset)//batch_size)
-    stats = CheckLayerSat(logging_dir, network, log_interval=60, sat_method='all', conv_method='mean')
+    stats = CheckLayerSat(logging_dir, network, log_interval=60, sat_method='cumvar99', conv_method='mean')
 
 
     epoch_acc = 0
