@@ -11,7 +11,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from delve import CheckLayerSat
-from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel
+from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel, vgg16_5, vgg16, vgg16_7, vgg16_L, vgg16_S
 from csv_logger import record_metrics, log_to_csv
 
 
@@ -119,8 +119,8 @@ def test(network, dataset, criterion, stats, epoch):
             if batch_idx % 2000 == 1999:  # print every 2000 mini-batches
                 print(batch_idx,'of', len(dataset),'acc:', correct/total)
         stats.saturation()
-        print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss / len(dataset),'\n')
-        stats.add_scalar('test_loss', test_loss / len(dataset), epoch)  # optional
+        print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss/total,'\n')
+        stats.add_scalar('test_loss', test_loss/total, epoch)  # optional
         stats.add_scalar('test_acc', correct/total, epoch)  # optional
     return test_loss/total, correct/total
 
@@ -133,7 +133,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    check = 2
+    check = 26
     i = 0
     for l1_config in l1:
         for l2_config in l2:
@@ -150,6 +150,8 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
                         n_classes=n_classes)
                 print('Network created')
 
+
+
                 train_loader = train_set(transform, batch_size)
                 test_loader = test_set(transform, batch_size)
 
@@ -159,7 +161,43 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
                 del net
 
+def execute_experiment_vgg(network: nn.Module, net_name: str, l1: int, l2: int , l3: int, train_set: FunctionType, test_set: FunctionType):
+
+    print('Experiment has started')
+
+    batch_size = 64
+
+    transform_train = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+    print('Creating Network')
+
+    net = network()
+    print('Network created')
+
+    train_loader = train_set(transform_train, batch_size)
+    test_loader = test_set(transform_test, batch_size)
+
+
+    print('Datasets fetched')
+    train(net, train_loader, test_loader, net_name, batch_size)
+
+    return
+
+
 if '__main__' == __name__:
+
+    configVGG16_cifar = {
+
+    }
 
     configCNN_cifar = {
         'network': SimpleCNN,
@@ -194,4 +232,4 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNN_cifar)
+    execute_experiment(**configCNNKernel_cifar)
