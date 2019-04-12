@@ -137,12 +137,12 @@ def make_layers(cfg, batch_norm=False, k_size=3):
 
 class VGG(nn.Module):
 
-    def __init__(self, features, num_classes=1000, init_weights=True, k_size: int = 3):
+    def __init__(self, features, num_classes=10, init_weights=True, final_filter: int = 512):
         super(VGG, self).__init__()
         self.features = features
-        self.avgpool = nn.AdaptiveAvgPool2d(kernel_size=1, stride=1)
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.classifier = nn.Sequential(
-            nn.Linear(features[-2], 4096),
+            nn.Linear(final_filter * 7 * 7, 4096),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -186,7 +186,7 @@ def vgg16_L(**kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['DL']), **kwargs)
+    model = VGG(make_layers(cfg['DL'], final_filter=1024), **kwargs)
     return model
 
 def vgg16_S(**kwargs):
@@ -194,7 +194,7 @@ def vgg16_S(**kwargs):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = VGG(make_layers(cfg['DS']), **kwargs)
+    model = VGG(make_layers(cfg['DS'], final_filter=256), **kwargs)
     return model
 
 def vgg16_5(**kwargs):

@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-
+import time as t
 from delve import CheckLayerSat
 from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel, vgg16_5, vgg16, vgg16_7, vgg16_L, vgg16_S
 from csv_logger import record_metrics, log_to_csv
@@ -47,9 +47,9 @@ def train(network, dataset, test_set, logging_dir, batch_size):
     network.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(network.parameters())
+    optimizer = optim.Adam(network.parameters())
     #stats = CheckLayerSat(logging_dir, network, log_interval=len(dataset)//batch_size)
-    stats = CheckLayerSat(logging_dir, network, log_interval=60, sat_method='all', conv_method='mean')
+    stats = CheckLayerSat(logging_dir, network, log_interval=60, sat_method='cumvar99', conv_method='mean')
 
 
     epoch_acc = 0
@@ -60,7 +60,7 @@ def train(network, dataset, test_set, logging_dir, batch_size):
     value_dict = None
     while epoch <= 20:
         print('Start Training Epoch', epoch, '\n')
-
+        start = t.time()
         epoch_acc = 0
         train_loss = 0
         total = 0
@@ -84,13 +84,14 @@ def train(network, dataset, test_set, logging_dir, batch_size):
             if i % 2000 == 1999:  # print every 2000 mini-batches
                 print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
+        end = t.time()
         stats.saturation()
         test_loss, test_acc = test(network, test_set, criterion, stats, epoch)
         epoch_acc = correct / total
         print('Epoch', epoch, 'finished', 'Acc:', epoch_acc, 'Loss:', train_loss / total,'\n')
         stats.add_scalar('train_loss', train_loss / total, epoch)  # optional
         stats.add_scalar('train_acc', epoch_acc, epoch)  # optional
-        value_dict = record_metrics(value_dict, stats.logs, epoch_acc, train_loss/total, test_acc, test_loss, epoch)
+        value_dict = record_metrics(value_dict, stats.logs, epoch_acc, train_loss/total, test_acc, test_loss, epoch, (end-start) / total)
         log_to_csv(value_dict, logging_dir)
         epoch += 1
     stats.close()
@@ -128,12 +129,12 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
     print('Experiment has started')
 
-    batch_size = 64
+    batch_size = 128
 
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    check = 26
+    check = 9
     i = 0
     for l1_config in l1:
         for l2_config in l2:
@@ -161,7 +162,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
                 del net
 
-def execute_experiment_vgg(network: nn.Module, net_name: str, l1: int, l2: int , l3: int, train_set: FunctionType, test_set: FunctionType):
+def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: FunctionType, test_set: FunctionType):
 
     print('Experiment has started')
 
@@ -195,9 +196,14 @@ def execute_experiment_vgg(network: nn.Module, net_name: str, l1: int, l2: int ,
 
 if '__main__' == __name__:
 
-    configVGG16_cifar = {
-
+    configVGG_cifar = {
+        'network': vgg16,
+        'train_set': train_set_cifar,
+        'test_set': test_set_cifar,
+        'net_name': 'VGG16'
     }
+
+    #execute_experiment_vgg(**configVGG_cifar)
 
     configCNN_cifar = {
         'network': SimpleCNN,
@@ -232,4 +238,6 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNNKernel_cifar)
+    execute_experiment(**configCNN_cifar)
+
+

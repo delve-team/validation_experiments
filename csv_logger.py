@@ -17,7 +17,7 @@ def log_to_csv(value_dict, savename):
     df = pd.DataFrame.from_dict(value_dict)
     df.to_csv(savename+'.csv', sep=';')
 
-def record_metrics(value_dict, log_dict, train_accuracy, train_loss, test_accuracy, test_loss, epoch):
+def record_metrics(value_dict, log_dict, train_accuracy, train_loss, test_accuracy, test_loss, epoch, time):
 
     result_dict = extract_metrics_from_scalaer_dict(log_dict)
     result_dict['train_accuracy'] = [train_accuracy]
@@ -25,6 +25,7 @@ def record_metrics(value_dict, log_dict, train_accuracy, train_loss, test_accura
     result_dict['train_loss'] = [train_loss]
     result_dict['test_loss'] = [test_loss]
     result_dict['epoch'] = [epoch]
+    result_dict['time_per_step'] = [time]
     if value_dict is None:
         return result_dict
     else:
