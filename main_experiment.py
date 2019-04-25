@@ -11,9 +11,13 @@ import torchvision
 import torchvision.transforms as transforms
 import time as t
 from delve import CheckLayerSat
-from models import SimpleFCNet, SimpleCNN, SimpleCNNKernel, vgg16_5, vgg16, vgg16_7, vgg16_L, vgg16_S
+from models import *
 from csv_logger import record_metrics, log_to_csv
-
+from torchvision.models import vgg16 as vgg16real
+from fastai.vision import DataBunch, Learner, create_cnn
+from fastai import *
+from fastai.vision import *
+from alternative_loaders import get_n_fold_datasets_test, get_n_fold_datasets_train
 
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
@@ -21,7 +25,6 @@ from tqdm import tqdm, trange
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-torch.manual_seed(1)
 
 def train_set_cifar(transform, batch_size):
     train_set = torchvision.datasets.CIFAR10(
@@ -81,8 +84,8 @@ def train(network, dataset, test_set, logging_dir, batch_size):
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
-            if i % 2000 == 1999:  # print every 2000 mini-batches
-                print(i,'of', len(dataset),'acc:', correct/total)
+            #if i % 2000 == 1999:  # print every 2000 mini-batches
+            print(i,'of', len(dataset),'acc:', correct/total)
             # display layer saturation levels
         end = t.time()
         stats.saturation()
@@ -117,8 +120,8 @@ def test(network, dataset, criterion, stats, epoch):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
-            if batch_idx % 2000 == 1999:  # print every 2000 mini-batches
-                print(batch_idx,'of', len(dataset),'acc:', correct/total)
+            #if batch_idx % 200 == 199:  # print every 200 mini-batches
+            print(batch_idx,'of', len(dataset),'acc:', correct/total)
         stats.saturation()
         print('Test finished', 'Acc:', correct / total, 'Loss:', test_loss/total,'\n')
         stats.add_scalar('test_loss', test_loss/total, epoch)  # optional
@@ -134,7 +137,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    check = 9
+    check = 25
     i = 0
     for l1_config in l1:
         for l2_config in l2:
@@ -166,26 +169,28 @@ def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: Functio
 
     print('Experiment has started')
 
-    batch_size = 64
+    batch_size = 128
 
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
+        #transforms.Resize(224),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
     transform_test = transforms.Compose([
+        #transforms.Resize(224),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     print('Creating Network')
-
-    net = network()
-    print('Network created')
-
     train_loader = train_set(transform_train, batch_size)
     test_loader = test_set(transform_test, batch_size)
+
+    net = network(num_classes=10)#create_cnn(data, vgg16).model#network()
+    print(net)
+    print('Network created')
 
 
     print('Datasets fetched')
@@ -196,14 +201,21 @@ def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: Functio
 
 if '__main__' == __name__:
 
-    configVGG_cifar = {
-        'network': vgg16,
-        'train_set': train_set_cifar,
-        'test_set': test_set_cifar,
-        'net_name': 'VGG16'
-    }
+    executions = [vgg19, vgg19_S, vgg16, vgg16_S, vgg13, vgg13_S, vgg11, vgg11_S, vgg9, vgg9_S, vgg8, vgg8_S]
+    names = ['19', '19_S', '16, 16_S', '13', '13_S', '11', '11_S', '9', '9_S', '8', '8_S']
 
-    #execute_experiment_vgg(**configVGG_cifar)
+    for i in range(len(names)):
+
+        print(names[i])
+
+        configVGG_cifar = {
+            'network': executions[i],
+            'train_set': train_set_cifar,
+            'test_set': test_set_cifar,
+            'net_name': '10_VGG'+names[i]+'_2'
+        }
+
+        execute_experiment_vgg(**configVGG_cifar)
 
     configCNN_cifar = {
         'network': SimpleCNN,
@@ -238,6 +250,6 @@ if '__main__' == __name__:
         'test_set': test_set_cifar
     }
 
-    execute_experiment(**configCNN_cifar)
+    #execute_experiment(**configCNN_cifar)
 
 
