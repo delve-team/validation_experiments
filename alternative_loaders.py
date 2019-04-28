@@ -20,14 +20,13 @@ transform_no_aug = transforms.Compose([TT, NRM])
 # Downloading/Louding CIFAR10 data
 trainset = CIFAR10(root='./data', train=True, download=True)  # , transform = transform_with_aug)
 testset = CIFAR10(root='./data', train=False, download=True)  # , transform = transform_no_aug)
-classDict = {'plane': 0, 'car': 1, 'bird': 2, 'cat': 3, 'deer': 4, 'dog': 5, 'frog': 6, 'horse': 7, 'ship': 8,
-             'truck': 9}
+classDict = trainset.class_to_idx
 
 # Separating trainset/testset data/label
-x_train = trainset.train_data
-x_test = testset.test_data
-y_train = trainset.train_labels
-y_test = testset.test_labels
+x_train = trainset.data
+x_test = testset.data
+y_train = trainset.targets
+y_test = testset.targets
 
 
 # Define a function to separate CIFAR classes by class index
@@ -90,7 +89,7 @@ class DatasetMaker(Dataset):
 
 # ================== Usage ================== #
 
-def get_n_fold_datasets_train(transforms, batch_size, class_names=['cat', 'dog']):
+def get_n_fold_datasets_train(t, batch_size, class_names=['cat', 'dog']):
 
     # Let's choose cats (class 3 of CIFAR) and dogs (class 5 of CIFAR) as trainset/testset
     cat_dog_trainset = \
@@ -99,7 +98,7 @@ def get_n_fold_datasets_train(transforms, batch_size, class_names=['cat', 'dog']
             transform_with_aug
         )
 
-    kwargs = {'num_workers': 2, 'pin_memory': False}
+    kwargs = {'num_workers': 3, 'pin_memory': False}
 
     # Create datasetLoaders from trainset and testse
 
@@ -107,7 +106,7 @@ def get_n_fold_datasets_train(transforms, batch_size, class_names=['cat', 'dog']
     return trainsetLoader
 
 
-def get_n_fold_datasets_test(transforms, batch_size, class_names=['cat', 'dog']):
+def get_n_fold_datasets_test(t, batch_size, class_names=['cat', 'dog']):
     # Let's choose cats (class 3 of CIFAR) and dogs (class 5 of CIFAR) as trainset/testset
     cat_dog_testset = \
         DatasetMaker(
@@ -116,7 +115,7 @@ def get_n_fold_datasets_test(transforms, batch_size, class_names=['cat', 'dog'])
             transform_no_aug
         )
 
-    kwargs = {'num_workers': 2, 'pin_memory': False}
+    kwargs = {'num_workers': 3, 'pin_memory': False}
 
     # Create datasetLoaders from trainset and testse
 

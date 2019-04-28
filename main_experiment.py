@@ -18,13 +18,41 @@ from fastai.vision import DataBunch, Learner, create_cnn
 from fastai import *
 from fastai.vision import *
 from alternative_loaders import get_n_fold_datasets_test, get_n_fold_datasets_train
+from torch.utils.data.sampler import WeightedRandomSampler
 
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm, trange
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+global SAMPLER
+global IMBALANCE
+SAMPLER = None
 
+def _shuffle_classes(class_list):
+    c_samples = np.random.choice(class_list, len(class_list), replace=False)
+    class_list = np.asarray(c_samples)[class_list]
+    return class_list
+
+def get_class_probas(class_list, skew_val=1.0):
+    class_list = _shuffle_classes(class_list)
+    probas = np.linspace(-len(class_list)//2, len(class_list)//2, len(class_list)) * 0.01 * skew_val
+    probas += 0.1
+    print(probas)
+    return probas
+
+def get_sampler_with_random_imbalance(skew_val, num_samples, n_classes, labels):
+    classes = list(range(n_classes))
+    class_probas = get_class_probas(classes, skew_val)
+    weights = np.zeros(num_samples)
+    for cls in classes:
+        prob = class_probas[cls]
+        w = weights[np.asarray(labels) == cls]
+        weights[np.asarray(labels) == cls] = class_probas[cls]
+    weights = weights / np.linalg.norm(weights)
+    global IMBALANCE
+    print(class_probas)
+    return WeightedRandomSampler(weights, num_samples, replacement=True)
 
 def train_set_cifar(transform, batch_size):
     train_set = torchvision.datasets.CIFAR10(
@@ -44,6 +72,40 @@ def test_set_cifar(transform, batch_size):
     )
 
     return test_loader
+
+
+def train_set_cifar100(transform, batch_size):
+    train_set = torchvision.datasets.CIFAR100(
+        root='./data', train=True, download=True, transform=transform
+    )
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=batch_size, shuffle=True, num_workers=2
+    )
+    return train_loader
+
+def test_set_cifar100(transform, batch_size):
+    test_set = torchvision.datasets.CIFAR100(
+        root='./data', train=False, download=True, transform=transform
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_set, batch_size=batch_size, shuffle=False, num_workers=2
+    )
+
+    return test_loader
+
+
+def train_set_imbalanced_cifar(transformer, batch_size, skew_val):
+    train_set = torchvision.datasets.CIFAR10(
+        root='./data', train=True, download=True, transform=transformer
+    )
+    global SAMPLER
+    if SAMPLER is None:
+        SAMPLER = get_sampler_with_random_imbalance(skew_val, len(train_set.targets), n_classes=10, labels=train_set.targets)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=batch_size, sampler=SAMPLER
+    )
+    return train_loader
 
 def train(network, dataset, test_set, logging_dir, batch_size):
 
@@ -165,7 +227,7 @@ def execute_experiment(network: nn.Module, in_channels: int, n_classes: int, l1:
 
                 del net
 
-def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: FunctionType, test_set: FunctionType):
+def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: FunctionType, test_set: FunctionType, n_claases=2):
 
     print('Experiment has started')
 
@@ -188,7 +250,7 @@ def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: Functio
     train_loader = train_set(transform_train, batch_size)
     test_loader = test_set(transform_test, batch_size)
 
-    net = network(num_classes=10)#create_cnn(data, vgg16).model#network()
+    net = network(num_classes=n_claases)#create_cnn(data, vgg16).model#network()
     print(net)
     print('Network created')
 
@@ -201,21 +263,54 @@ def execute_experiment_vgg(network: nn.Module, net_name: str, train_set: Functio
 
 if '__main__' == __name__:
 
-    executions = [vgg19, vgg19_S, vgg16, vgg16_S, vgg13, vgg13_S, vgg11, vgg11_S, vgg9, vgg9_S, vgg8, vgg8_S]
-    names = ['19', '19_S', '16, 16_S', '13', '13_S', '11', '11_S', '9', '9_S', '8', '8_S']
+    executions = [vgg11_XXXS, vgg13_XXXS, vgg16_XXXS, vgg19_XXXS,
+                  vgg11_XXS, vgg13_XXS, vgg16_XXS, vgg19_XXS,
+                  vgg11_XS, vgg13_XS, vgg16_XS, vgg19_XS,
+                  vgg11_S, vgg13_S, vgg16_S, vgg19_S,
+                  vgg11, vgg13, vgg16, vgg19,
+                  ]
+    names = ['11_XXXS', '13_XXXS', '16_XXXS', '19_XXXS',
+             '11_XXS', '13_XXS', '16_XXS', '19_XXS',
+             '11_XS', '13_XS', '16_XS', '19_XS',
+             '11_S', '13_S', '16_S', '19_S',
+             '11', '13', '16', '19',
+             ]
 
-    for i in range(len(names)):
+    train_set = lambda transform_train, batch_size: get_n_fold_datasets_train(transform_train, batch_size, ['automobile', 'frog'])
+    test_set = lambda transform_test, batch_size: get_n_fold_datasets_test(transform_test, batch_size, ['automobile', 'frog'])
 
-        print(names[i])
+    #executions.reverse()
+    #names.reverse()
 
-        configVGG_cifar = {
-            'network': executions[i],
-            'train_set': train_set_cifar,
-            'test_set': test_set_cifar,
-            'net_name': '10_VGG'+names[i]+'_2'
-        }
+    train_set_imbalanced_cifar
+    counter = 0
+    for j in [0, 1]:
 
-        execute_experiment_vgg(**configVGG_cifar)
+        #sampler = WeightedRandomSampler()
+        for i in range(len(names)):
+            counter += 1
+            print('COUNTER:',counter)
+            print(names[i])
+
+            #configVGG_cifar = {
+            #    'network': executions[i],
+            #    'train_set': train_set,
+            #    'test_set': test_set,
+            #    'net_name': 'automobilefrog_VGG' + names[i] + '_A' + str(j),
+            #    'n_claases': 2
+            #}
+
+           # execute_experiment_vgg(**configVGG_cifar)
+
+            configVGG_cifar = {
+                'network': executions[i],
+                'train_set': train_set_cifar100,#lambda t, batch_size: train_set_imbalanced_cifar(t, batch_size=batch_size, skew_val=1.0),
+                'test_set': test_set_cifar100,
+                'net_name': '100_VGG' + names[i] + '_A' + str(j),
+                'n_claases': 100
+            }
+            execute_experiment_vgg(**configVGG_cifar)
+
 
     configCNN_cifar = {
         'network': SimpleCNN,

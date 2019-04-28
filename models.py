@@ -120,18 +120,34 @@ cfg = {
     'XS': [32, 'M', 64, 'M', 128, 'M'],
     'Y': [64, 'M', 128, 'M', 256, 'M', 512, 'M'],
     'YS': [32, 'M', 64, 'M', 128, 'M', 256, 'M'],
+    'YXS': [16, 'M', 32, 'M', 64, 'M', 128, 'M'],
     'Z': [64, 'M', 128, 'M', 256, 'M', 512, 'M', 512, 'M'],
+    'ZXS': [16, 'M', 32, 'M', 64, 'M', 128, 'M', 128, 'M'],
+    'ZXXS': [8, 'M', 16, 'M', 32, 'M', 64, 'M', 64, 'M'],
+    'ZXXXS': [4, 'M', 8, 'M', 16, 'M', 32, 'M', 32, 'M'],
     'ZS': [32, 'M', 64, 'M', 128, 'M', 256, 'M', 256, 'M'],
     'AS': [32, 'M', 64, 'M', 126, 126, 'M', 256, 256, 'M', 256, 256, 'M'],
+    'AXS': [16, 'M', 32, 'M', 64, 64, 'M', 128, 128, 'M', 128, 128, 'M'],
+    'AXXS': [8, 'M', 16, 'M', 32, 32, 'M', 64, 64, 'M', 64, 64, 'M'],
+    'AXXXS': [4, 'M', 8, 'M', 16, 16, 'M', 32, 32, 'M', 32, 32, 'M'],
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'AL': [128, 'M', 256, 'M', 512, 512, 'M', 1024, 1024, 'M', 1024, 1024, 'M'],
     'BS': [32, 32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 256, 256, 'M'],
+    'BXS': [16, 16, 'M', 32, 32, 'M', 64, 64, 'M', 128, 128, 'M', 128, 128, 'M'],
+    'BXXS': [8, 8, 'M', 16, 16, 'M', 32, 32, 'M', 64, 64, 'M', 64, 64, 'M'],
+    'BXXXS': [4, 4, 'M', 8, 8, 'M', 16, 16, 'M', 32, 32, 'M', 32, 32, 'M'],
     'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'DS': [32, 32, 'M', 64, 64, 'M', 128, 128, 128, 'M', 256, 256, 256, 'M', 256, 256, 256, 'M'],
+    'DXXXS': [4, 4, 'M', 8, 8, 'M', 16, 16, 16, 'M', 32, 32, 32, 'M', 32, 32, 32, 'M'],
+    'DXXS': [8, 8, 'M', 16, 16, 'M', 32, 32, 32, 'M', 64, 64, 64, 'M', 64, 64, 64, 'M'],
+    'DXS': [16, 16, 'M', 32, 32, 'M', 64, 64, 64, 'M', 128, 128, 128, 'M', 128, 128, 128, 'M'],
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
     'DL': [128, 128, 'M', 256, 256, 'M', 512, 512, 512, 'M', 1024, 1024, 1024, 'M', 1024, 1024, 1024, 'M'],
     'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
     'ES': [32, 32, 'M', 64, 64, 'M', 128, 128, 128, 128, 'M', 256, 256, 256, 256, 'M', 256, 256, 256, 256, 'M'],
+    'EXS': [16, 16, 'M', 32, 32, 'M', 64, 64, 64, 64, 'M', 128, 128, 128, 128, 'M', 128, 128, 128, 128, 'M'],
+    'EXXS': [8, 8, 'M', 16, 16, 'M', 32, 32, 32, 32, 'M', 64, 64, 64, 64, 'M', 64, 64, 64, 64, 'M'],
+    'EXXXS': [4, 4, 'M', 8, 8, 'M', 16, 16, 16, 16, 'M', 32, 32, 32, 32, 'M', 32, 32, 32, 32, 'M'],
 }
 
 def make_layers(cfg, batch_norm=True, k_size=3):
@@ -209,6 +225,30 @@ def vgg16_S(*args, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = VGG(make_layers(cfg['DS']), final_filter=256, **kwargs)
+    return model
+
+def vgg16_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['DXS']), final_filter=128, **kwargs)
+    return model
+
+def vgg16_XXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['DXXS']), final_filter=64, **kwargs)
+    return model
+
+def vgg16_XXXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['DXXXS']), final_filter=32, **kwargs)
     return model
 
 def vgg16_5(*args, **kwargs):
@@ -292,6 +332,13 @@ def vgg8_S(*args, **kwargs):
     model = VGG(make_layers(cfg['YS']), final_filter=256, **kwargs)
     return model
 
+def vgg8_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['YXS']), final_filter=128, **kwargs)
+    return model
 
 def vgg9(*args, **kwargs):
     """VGG 16-layer model (configuration "D")
@@ -309,6 +356,21 @@ def vgg9_S(*args, **kwargs):
     model = VGG(make_layers(cfg['ZS']), final_filter=256, **kwargs)
     return model
 
+def vgg9_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['ZXS']), final_filter=128, **kwargs)
+    return model
+
+def vgg9_XXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['ZXXS']), final_filter=64, **kwargs)
+    return model
 def vgg9_5(*args, **kwargs):
     """VGG 16-layer model (configuration "D")
     Args:
@@ -356,6 +418,30 @@ def vgg11_S(*args, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = VGG(make_layers(cfg['AS']), final_filter=256, **kwargs)
+    return model
+
+def vgg11_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['AXS']), final_filter=128, **kwargs)
+    return model
+
+def vgg11_XXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['AXXS']), final_filter=64, **kwargs)
+    return model
+
+def vgg11_XXXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['AXXXS']), final_filter=32, **kwargs)
     return model
 
 def vgg11_5(*args, **kwargs):
@@ -432,6 +518,30 @@ def vgg13_S(*args, **kwargs):
     model = VGG(make_layers(cfg['BS']), final_filter=256, **kwargs)
     return model
 
+def vgg13_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['BXS']), final_filter=128, **kwargs)
+    return model
+
+def vgg13_XXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['BXXS']), final_filter=64, **kwargs)
+    return model
+
+def vgg13_XXXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['BXXXS']), final_filter=32, **kwargs)
+    return model
+
 def vgg13_5(*args, **kwargs):
     """VGG 16-layer model (configuration "D")
     Args:
@@ -462,6 +572,38 @@ def vgg19_S(*args, **kwargs):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = VGG(make_layers(cfg['ES']), final_filter=256, **kwargs)
+    return model
+
+def vgg19_XS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['EXS']), final_filter=128, **kwargs)
+    return model
+
+def vgg19_XXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['EXXS']), final_filter=64, **kwargs)
+    return model
+
+def vgg19_XXXS(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['EXXXS']), final_filter=32, **kwargs)
+    return model
+
+def vgg19_5(*args, **kwargs):
+    """VGG 16-layer model (configuration "D")
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['E'], k_size=5), **kwargs)
     return model
 
 def vgg19_5(*args, **kwargs):
