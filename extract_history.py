@@ -7,12 +7,15 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 
 def tabulate_events(dpath):
-    summary_iterators = [EventAccumulator(os.path.join(dpath, dname)).Reload() for dname in os.listdir(dpath)]
+    summary_iterators = [
+        EventAccumulator(os.path.join(dpath, dname)).Reload()
+        for dname in os.listdir(dpath)
+    ]
 
-    tags = summary_iterators[0].Tags()['scalars']
+    tags = summary_iterators[0].Tags()["scalars"]
 
     for it in summary_iterators:
-        assert it.Tags()['scalars'] == tags
+        assert it.Tags()["scalars"] == tags
 
     out = defaultdict(list)
     steps = []
@@ -41,13 +44,13 @@ def to_csv(dpath):
 
 
 def get_file_path(dpath, tag):
-    file_name = tag.replace("/", "_") + '.csv'
-    folder_path = os.path.join(dpath, 'csv')
+    file_name = tag.replace("/", "_") + ".csv"
+    folder_path = os.path.join(dpath, "csv")
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     return os.path.join(folder_path, file_name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     path = "train_run_576_1152_2304"
     to_csv(path)
