@@ -18,8 +18,12 @@ transform_with_aug = transforms.Compose([TPIL, RC, RHF, TT, NRM])
 transform_no_aug = transforms.Compose([TT, NRM])
 
 # Downloading/Louding CIFAR10 data
-trainset = CIFAR10(root='./data', train=True, download=True)  # , transform = transform_with_aug)
-testset = CIFAR10(root='./data', train=False, download=True)  # , transform = transform_no_aug)
+trainset = CIFAR10(
+    root="./data", train=True, download=True
+)  # , transform = transform_with_aug)
+testset = CIFAR10(
+    root="./data", train=False, download=True
+)  # , transform = transform_no_aug)
 classDict = trainset.class_to_idx
 
 # Separating trainset/testset data/label
@@ -30,6 +34,7 @@ y_test = testset.targets
 
 
 # Define a function to separate CIFAR classes by class index
+
 
 def get_class_i(x, y, i):
     """
@@ -89,35 +94,43 @@ class DatasetMaker(Dataset):
 
 # ================== Usage ================== #
 
-def get_n_fold_datasets_train(t, batch_size, class_names=['cat', 'dog']):
+
+def get_n_fold_datasets_train(t, batch_size, class_names=["cat", "dog"]):
 
     # Let's choose cats (class 3 of CIFAR) and dogs (class 5 of CIFAR) as trainset/testset
-    cat_dog_trainset = \
-        DatasetMaker(
-            [get_class_i(x_train, y_train, classDict[class_names[0]]), get_class_i(x_train, y_train, classDict[class_names[1]])],
-            transform_with_aug
-        )
+    cat_dog_trainset = DatasetMaker(
+        [
+            get_class_i(x_train, y_train, classDict[class_names[0]]),
+            get_class_i(x_train, y_train, classDict[class_names[1]]),
+        ],
+        transform_with_aug,
+    )
 
-    kwargs = {'num_workers': 3, 'pin_memory': False}
+    kwargs = {"num_workers": 3, "pin_memory": False}
 
     # Create datasetLoaders from trainset and testse
 
-    trainsetLoader = DataLoader(cat_dog_trainset, batch_size=batch_size, shuffle=True, **kwargs)
+    trainsetLoader = DataLoader(
+        cat_dog_trainset, batch_size=batch_size, shuffle=True, **kwargs
+    )
     return trainsetLoader
 
 
-def get_n_fold_datasets_test(t, batch_size, class_names=['cat', 'dog']):
+def get_n_fold_datasets_test(t, batch_size, class_names=["cat", "dog"]):
     # Let's choose cats (class 3 of CIFAR) and dogs (class 5 of CIFAR) as trainset/testset
-    cat_dog_testset = \
-        DatasetMaker(
-            [get_class_i(x_test, y_test, classDict[class_names[0]]),
-             get_class_i(x_test, y_test, classDict[class_names[1]])],
-            transform_no_aug
-        )
+    cat_dog_testset = DatasetMaker(
+        [
+            get_class_i(x_test, y_test, classDict[class_names[0]]),
+            get_class_i(x_test, y_test, classDict[class_names[1]]),
+        ],
+        transform_no_aug,
+    )
 
-    kwargs = {'num_workers': 3, 'pin_memory': False}
+    kwargs = {"num_workers": 3, "pin_memory": False}
 
     # Create datasetLoaders from trainset and testse
 
-    testsetLoader = DataLoader(cat_dog_testset, batch_size=batch_size, shuffle=False, **kwargs)
+    testsetLoader = DataLoader(
+        cat_dog_testset, batch_size=batch_size, shuffle=False, **kwargs
+    )
     return testsetLoader
